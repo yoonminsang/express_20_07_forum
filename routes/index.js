@@ -2,15 +2,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../lib/pool");
 router.get("/", async (req, res) => {
-  const login = () => {
-    if (req.user) {
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  res.json({ login: login() });
+  console.log(req);
+  const user = req.user;
+  console.log(user);
+  res.json({ index: "index", user: user });
 });
 
 module.exports = router;

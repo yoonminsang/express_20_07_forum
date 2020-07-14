@@ -1,56 +1,53 @@
 const express = require("express");
 const router = express.Router();
-const shortid = require("shortid");
-// const db = require("../lib/db");
+const { v4: uuidv4 } = require("uuid");
 const pool = require("../lib/pool");
 const bcrypt = require("bcrypt");
 const ftn = require("../lib/ftn");
 
 module.exports = function (passport) {
+  router.get("/success", function (req, res) {
+    res.json("로그인했습니다");
+  });
   router.get("/fail", function (req, res) {
     res.json("아이디 또는 비밀번호가 틀립니다");
   });
 
   router.post(
-    "/login_process",
+    "/signin_process",
     passport.authenticate("local", {
-      successRedirect: "/server",
-      failureRedirect: "/server/auth/fail",
-      // successFlash: true,
-      // failureFlash: true,
+      successRedirect: "/auth/success",
+      failureRedirect: "/auth/fail",
     })
   );
 
-  router.post("/register_process", async function (req, res) {
+  router.post("/signup_process", async function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
     const displayName = req.body.displayName;
-
-    const [
-      overlap,
-      fields,
-    ] = await pool.query("SELECT id FROM users WHERE email=?", [email]);
-    if (!ftn.isEmpty(overlap)) {
+    const [overlap] = await pool.query("SELECT id FROM users WHERE email=?", [
+      email,
+    ]);
+    if (!ftn.isEmpty(overlap[0])) {
       res.json("이메일이 존재합니다");
       return false;
     }
 
     const [
       overlap2,
-      fields2,
     ] = await pool.query("SELECT id FROM users WHERE displayName=?", [
       displayName,
     ]);
-    if (!ftn.isEmpty(overlap2)) {
+    if (!ftn.isEmpty(overlap2[0])) {
       res.json("닉네임이 존재합니다");
       return false;
     }
 
-    let user = function () {
+    let user = () => {
       return new Promise((resolve, reject) => {
         bcrypt.hash(password, 10, function (err, hash) {
           user = {
-            id: shortid.generate(),
+            id: uuidv4(),
             email: email,
             password: hash,
             displayName: displayName,
@@ -70,9 +67,9 @@ module.exports = function (passport) {
       [user.id, user.email, user.password, user.displayName]
     );
 
-    await pool.query(
-      "UPDATE counting set userCount = userCount + 1 where id=1"
-    );
+    // await pool.query(
+    //   "UPDATE counting set userCount = userCount + 1 where id=1"
+    // );
 
     await (function () {
       return new Promise((resolve, reject) => {

@@ -4,7 +4,7 @@ const port = process.env.PORT || 3001;
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const session = require("express-session");
-// const MySQLStore = require("express-mysql-session")(session);
+const MySQLStore = require("express-mysql-session")(session);
 const helmet = require("helmet");
 
 const corsOptions = {
@@ -21,7 +21,7 @@ app.use(
   session({
     key: "session_cookie_mhealth",
     secret: require("./config/secret.json").secret,
-    // store: new MySQLStore(options),
+    store: new MySQLStore(options),
     resave: false,
     saveUninitialized: true,
     rolling: true,
@@ -31,10 +31,13 @@ app.use(
   })
 );
 
-// const serverRouter = require("./routes/server");
-// app.use("/server", serverRouter);
+const passport = require("./lib/passport")(app);
+
 const indexRouter = require("./routes/index");
+const authRouter = require("./routes/auth")(passport);
+
 app.use("/", indexRouter);
+app.use("/auth", authRouter);
 
 app.use(function (req, res, next) {
   res.status(404).send("Sorry cant find that!");

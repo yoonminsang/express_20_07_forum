@@ -3,12 +3,20 @@ const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../lib/pool");
 const bcrypt = require("bcrypt");
-const ftn = require("../lib/ftn");
+const isEmpty = (value) => {
+  if (
+    value === "" ||
+    value === null ||
+    value === undefined ||
+    (value !== null && typeof value === "object" && !Object.keys(value).length)
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+};
 
 module.exports = function (passport) {
-  router.get("/success", function (req, res) {
-    res.json("로그인했습니다");
-  });
   router.get("/fail", function (req, res) {
     res.json("아이디 또는 비밀번호가 틀립니다");
   });
@@ -16,7 +24,7 @@ module.exports = function (passport) {
   router.post(
     "/signin_process",
     passport.authenticate("local", {
-      successRedirect: "/auth/success",
+      successRedirect: "/logged",
       failureRedirect: "/auth/fail",
     })
   );
@@ -28,7 +36,7 @@ module.exports = function (passport) {
     const [overlap] = await pool.query("SELECT id FROM users WHERE email=?", [
       email,
     ]);
-    if (!ftn.isEmpty(overlap[0])) {
+    if (!isEmpty(overlap[0])) {
       res.json("이메일이 존재합니다");
       return false;
     }
@@ -38,7 +46,7 @@ module.exports = function (passport) {
     ] = await pool.query("SELECT id FROM users WHERE displayName=?", [
       displayName,
     ]);
-    if (!ftn.isEmpty(overlap2[0])) {
+    if (!isEmpty(overlap2[0])) {
       res.json("닉네임이 존재합니다");
       return false;
     }
@@ -67,10 +75,6 @@ module.exports = function (passport) {
       [user.id, user.email, user.password, user.displayName]
     );
 
-    // await pool.query(
-    //   "UPDATE counting set userCount = userCount + 1 where id=1"
-    // );
-
     await (function () {
       return new Promise((resolve, reject) => {
         req.login(user, function (err) {
@@ -78,7 +82,7 @@ module.exports = function (passport) {
             reject(Error("error"));
           } else {
             resolve();
-            res.json({ displayName: displayName });
+            res.redirect("/logged");
           }
         });
       });

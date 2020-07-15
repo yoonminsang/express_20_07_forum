@@ -1,11 +1,12 @@
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 3001;
+const helmet = require("helmet");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const MySQLStore = require("express-mysql-session")(session);
-const helmet = require("helmet");
 
 const corsOptions = {
   origin: "http://localhost:3000",
@@ -14,6 +15,8 @@ const corsOptions = {
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const options = require("./config/db.json");
 

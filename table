@@ -2,6 +2,6 @@ CREATE TABLE users(
   id CHAR(36) NOT NULL,
   email VARCHAR(40) NOT NULL,
   displayName VARCHAR(10) NOT NULL,
-  password TEXT NOT NULL,
+  password CHAR(60) NOT NULL,
   PRIMARY KEY(id)
 );

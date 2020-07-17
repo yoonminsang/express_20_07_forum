@@ -3,5 +3,21 @@ CREATE TABLE users(
   email VARCHAR(40) NOT NULL,
   displayName VARCHAR(10) NOT NULL,
   password CHAR(60) NOT NULL,
+  grade VARCHAR(10) NOT NULL DEFAULT 'normal',
+  PRIMARY KEY(id)
+);
+update users set grade='manager' where displayName=1;
+
+CREATE TABLE subject(
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(20) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE category(
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(20) NOT NULL,
+  subject INT NOT NULL,
+  counting INT DEFAULT 0,
   PRIMARY KEY(id)
 );

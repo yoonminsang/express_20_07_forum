@@ -33,20 +33,20 @@ module.exports = function (passport) {
     const email = req.body.email;
     const password = req.body.password;
     const displayName = req.body.displayName;
-    const [overlap] = await pool.query("SELECT id FROM users WHERE email=?", [
+    const [[overlap]] = await pool.query("SELECT id FROM users WHERE email=?", [
       email,
     ]);
-    if (!isEmpty(overlap[0])) {
+    if (!isEmpty(overlap)) {
       res.json("이메일이 존재합니다");
       return false;
     }
 
     const [
-      overlap2,
+      [overlap2],
     ] = await pool.query("SELECT id FROM users WHERE displayName=?", [
       displayName,
     ]);
-    if (!isEmpty(overlap2[0])) {
+    if (!isEmpty(overlap2)) {
       res.json("닉네임이 존재합니다");
       return false;
     }

@@ -21,3 +21,48 @@ CREATE TABLE category(
   counting INT DEFAULT 0,
   PRIMARY KEY(id)
 );
+
+CREATE TABLE notice_counting(
+  counting INT
+);
+
+CREATE TABLE notice_post(
+  id INT NOT NULL AUTO_INCREMENT,
+  title VARCHAR(40) NOT NULL,
+  content TEXT NULL,
+  status VARCHAR(7) NOT NULL,
+  good INT DEFAULT 0,
+  bad INT DEFAULT 0,
+  comment INT DEFAULT 0,
+  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY(id)
+);
+조회수는 안넣을거니??
+
+CREATE TABLE notice_comment(
+  id INT NOT NULL AUTO_INCREMENT,
+  notice_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  content VARCHAR(100) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE notice_good(
+  notice_id INT NOT NULL,
+  user_id INT NOT NULL
+);
+
+CREATE TABLE notice_bad(
+  notice_id INT NOT NULL,
+  user_id INT NOT NULL
+);
+
+CREATE TABLE hashtag(
+  이건 나중에 머리아퍼
+)
+INSERT INTO category(title, category_id, content, user_id) VALUES(?, ?, ?, ?)
+UPDATE notice_counting set counting=counting+1;
+insert into notice_post(title,status) values(1,"visible");
+공개 visible
+비공개 hidden

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const pool = require("../lib/pool");
 router.get("/logged", async (req, res) => {
   const user = req.user;
   if (user) {

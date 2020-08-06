@@ -5,7 +5,7 @@ const path = require("path");
 
 router.get("/category", async (req, res) => {
   const [category] = await pool.query(
-    "SELECT category.id, category.name as category_name, subject as subject_id, subject.name as subject_name, counting FROM category JOIN subject ON category.subject=subject.id"
+    "SELECT category.id, category.name as category_name, subject as subject_id, subject.name as subject_name, counting FROM category JOIN subject ON category.subject=subject.id ORDER BY subject, category.name"
   );
   const [subject] = await pool.query("SELECT * FROM subject");
   res.json({ category, subject });
@@ -82,6 +82,25 @@ router.get("/notice/search/type/:type/Keyword/:Keyword", async (req, res) => {
   );
   res.json({ notice_post, notice_counting });
 });
+
+router.get(
+  "/notice/search/type/:type/Keyword/:Keyword/page/:pageId",
+  async (req, res) => {
+    const pageId = path.parse(req.params.pageId).base;
+    const offset = 15 * (pageId - 1);
+    const type = path.parse(req.params.type).base;
+    const Keyword = path.parse(req.params.Keyword).base;
+    let [notice_post] = await pool.query(
+      `SELECT id, title, status, comment, date_format(modified, '%Y-%m-%d %h:%i') as created FROM notice_post WHERE ${type} LIKE '%${Keyword}%' ORDER BY id DESC LIMIT 15 OFFSET ${offset}`
+    );
+    notice_post.map((post) => (post.checked = false));
+
+    const [[notice_counting]] = await pool.query(
+      `SELECT COUNT(*) as counting FROM notice_post WHERE ${type} LIKE '%${Keyword}%'`
+    );
+    res.json({ notice_post, notice_counting });
+  }
+);
 
 router.post("/notice/delete_process", async (req, res) => {
   const id = req.body.id;

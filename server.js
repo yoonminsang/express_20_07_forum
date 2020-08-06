@@ -39,10 +39,12 @@ const passport = require("./lib/passport")(app);
 const indexRouter = require("./routes/index");
 const authRouter = require("./routes/auth")(passport);
 const manageRouter = require("./routes/manage");
+const forumRouter = require("./routes/forum");
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/manage", manageRouter);
+app.use("/forum", forumRouter);
 
 app.use(function (req, res, next) {
   res.status(404).send("Sorry cant find that!");

@@ -21,8 +21,10 @@ router.get("/:categoryId", async (req, res) => {
   const [category] = await pool.query(
     `SELECT name, counting FROM category WHERE id=${categoryId}`
   );
+  const title = category[0].name;
+  const counting = category[0].counting;
   let [categoryPost] = await pool.query(
-    `SELECT category_post.id, title, users.displayName, good, comment, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} ORDER BY category_post.id DESC LIMIT 50`
+    `SELECT category_post.id, title, users.displayName, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} ORDER BY category_post.id DESC LIMIT 50`
   );
   const today = new Date();
   let dd = today.getDate() + "";
@@ -34,14 +36,13 @@ router.get("/:categoryId", async (req, res) => {
   if (mm < 10) {
     mm = "0" + mm;
   }
-  console.log(categoryPost[0]);
+  const now = `${yy}.${mm}.${dd}`;
   categoryPost.map((post) =>
-    post.created.substring(0, 8) === `${yy}.${mm}.${dd}`
+    post.created.substring(0, 8) === now
       ? (post.created = post.created.substring(9))
       : (post.created = post.created.substring(0, 8))
   );
-  console.log(categoryPost[0]);
-  res.json({ category, categoryPost });
+  res.json({ category, title, counting, categoryPost });
 });
 
 router.get("/:categoryId/page/:pageId", async (req, res) => {
@@ -51,8 +52,10 @@ router.get("/:categoryId/page/:pageId", async (req, res) => {
   const [category] = await pool.query(
     `SELECT name, counting FROM category WHERE id=${categoryId}`
   );
+  const title = category[0].name;
+  const counting = category[0].counting;
   let [categoryPost] = await pool.query(
-    `SELECT category_post.id, title, users.displayName, good, comment, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} ORDER BY category_post.id DESC LIMIT 50 OFFSET ${offset}`
+    `SELECT category_post.id, title, users.displayName, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} ORDER BY category_post.id DESC LIMIT 50 OFFSET ${offset}`
   );
   const today = new Date();
   let dd = today.getDate() + "";
@@ -64,13 +67,111 @@ router.get("/:categoryId/page/:pageId", async (req, res) => {
   if (mm < 10) {
     mm = "0" + mm;
   }
+  const now = `${yy}.${mm}.${dd}`;
   categoryPost.map((post) =>
-    post.created.substring(0, 8) === `${yy}.${mm}.${dd}`
+    post.created.substring(0, 8) === now
       ? (post.created = post.created.substring(9))
       : (post.created = post.created.substring(0, 8))
   );
-  console.log(categoryPost[0]);
-  res.json({ category, categoryPost });
+  res.json({ title, counting, categoryPost });
+});
+
+router.get("/:categoryId/mode/:modeType", async (req, res) => {
+  const categoryId = path.parse(req.params.categoryId).base;
+  const modeType = path.parse(req.params.modeType).base;
+  const [[category]] = await pool.query(
+    `SELECT name FROM category WHERE id=${categoryId}`
+  );
+  const title = category.name;
+  let counting, categoryPost;
+  const today = new Date();
+  let dd = today.getDate() + "";
+  let mm = today.getMonth() + 1 + "";
+  let yy = today.getFullYear() + "";
+  if (dd < 10) {
+    dd = "0" + dd;
+  }
+  if (mm < 10) {
+    mm = "0" + mm;
+  }
+  const nowSql = `${yy}-${mm}-${dd}`;
+  if (modeType === "recommend") {
+    [categoryPost] = await pool.query(
+      `SELECT category_post.id, title, users.displayName, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0 ORDER BY good DESC LIMIT 50`
+    );
+    const [cot] = await pool.query(
+      `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0`
+    );
+    counting = cot.counting;
+  } else if (modeType === "notice") {
+    [categoryPost] = await pool.query(
+      `SELECT id, title, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM notice_post ORDER BY id DESC LIMIT 50`
+    );
+    categoryPost = categoryPost.map((post) => ({
+      ...post,
+      displayName: "매니저",
+    }));
+    const [[cot]] = await pool.query(`SELECT counting FROM notice_counting`);
+    counting = cot.counting;
+  }
+  yy = yy.substring(2);
+  const now = `${yy}.${mm}.${dd}`;
+  categoryPost.map((post) =>
+    post.created.substring(0, 8) === now
+      ? (post.created = post.created.substring(9))
+      : (post.created = post.created.substring(0, 8))
+  );
+  res.json({ title, counting, categoryPost });
+});
+
+router.get("/:categoryId/mode/:modeType/page/:pageId", async (req, res) => {
+  const categoryId = path.parse(req.params.categoryId).base;
+  const modeType = path.parse(req.params.modeType).base;
+  const pageId = path.parse(req.params.pageId).base;
+  const offset = 50 * (pageId - 1);
+  const [[category]] = await pool.query(
+    `SELECT name FROM category WHERE id=${categoryId}`
+  );
+  const title = category.name;
+  let counting, categoryPost;
+  const today = new Date();
+  let dd = today.getDate() + "";
+  let mm = today.getMonth() + 1 + "";
+  let yy = today.getFullYear() + "";
+  if (dd < 10) {
+    dd = "0" + dd;
+  }
+  if (mm < 10) {
+    mm = "0" + mm;
+  }
+  const nowSql = `${yy}-${mm}-${dd}`;
+  if (modeType === "recommend") {
+    [categoryPost] = await pool.query(
+      `SELECT category_post.id, title, users.displayName, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0 ORDER BY good DESC LIMIT 50 OFFSET ${offset}`
+    );
+    const [cot] = await pool.query(
+      `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0`
+    );
+    counting = cot.counting;
+  } else if (modeType === "notice") {
+    [categoryPost] = await pool.query(
+      `SELECT id, title, good, comment, count, date_format(modified, '%y.%m.%d %h:%i') as created FROM notice_post ORDER BY id DESC LIMIT 50 OFFSET ${offset}`
+    );
+    categoryPost = categoryPost.map((post) => ({
+      ...post,
+      displayName: "매니저",
+    }));
+    const [[cot]] = await pool.query(`SELECT counting FROM notice_counting`);
+    counting = cot.counting;
+  }
+  yy = yy.substring(2);
+  const now = `${yy}.${mm}.${dd}`;
+  categoryPost.map((post) =>
+    post.created.substring(0, 8) === now
+      ? (post.created = post.created.substring(9))
+      : (post.created = post.created.substring(0, 8))
+  );
+  res.json({ title, counting, categoryPost });
 });
 
 module.exports = router;

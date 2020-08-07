@@ -18,6 +18,9 @@ router.post("/category/process", async (req, res) => {
 
   for (let i = 0; i < deleteId.length; i++) {
     await pool.query("DELETE FROM category WHERE id =?", [deleteId[i]]);
+    await pool.query("DELETE FROM category_post WHERE category_id=?", [
+      deleteId[i],
+    ]);
   }
 
   let modifyIndex;

@@ -141,4 +141,15 @@ router.post("/notice/select_status_process", async (req, res) => {
   res.json({ process: true });
 });
 
+router.post("/notice/create_process", async (req, res) => {
+  const title = req.body.title;
+  const content = req.body.content;
+  const status = req.body.status;
+  await pool.query(
+    `INSERT INTO notice_post(title, content, status) VALUES('${title}','${content}','${status}')`
+  );
+  await pool.query(`UPDATE notice_counting SET counting=counting+1`);
+  res.json({ process: true });
+});
+
 module.exports = router;

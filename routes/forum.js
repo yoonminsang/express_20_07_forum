@@ -137,7 +137,6 @@ router.get("/:categoryId/mode/:modeType", async (req, res) => {
     mm = "0" + mm;
   }
   const nowSql = `${yy}-${mm}-${dd}`;
-  console.log(nowSql);
   if (modeType === "recommend") {
     [categoryPost] = await pool.query(
       `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0 ORDER BY good DESC LIMIT 50`
@@ -529,6 +528,60 @@ router.post("/:categoryId/write/process", async (req, res) => {
   res.json({ process: true });
 });
 
+router.get("/:categoryId/modify/:postId", async (req, res) => {
+  const categoryId = path.parse(req.params.categoryId).base;
+  const postId = path.parse(req.params.postId).base;
+  const [category] = await pool.query(
+    `SELECT name, counting FROM category WHERE id=${categoryId}`
+  );
+  const title = category[0].name;
+  const [[post]] = await pool.query(
+    `SELECT title, content, email FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND category_post.id=${postId}`
+  );
+  if (post.email === req.user.email) {
+    res.json({ title, post });
+  } else {
+    res.json(false);
+  }
+});
+
+router.post("/:categoryId/modify/:postId/process", async (req, res) => {
+  const categoryId = path.parse(req.params.categoryId).base;
+  const postId = path.parse(req.params.postId).base;
+  const title = req.body.title;
+  const content = req.body.content;
+  const [[user_id]] = await pool.query(
+    `SELECT user_id FROM category_post WHERE id=${postId}`
+  );
+  if (user_id.user_id === req.user.id) {
+    await pool.query(
+      `UPDATE category_post SET title='${title}', content='${content}' WHERE id=${postId} AND category_id=${categoryId}`
+    );
+  } else {
+    return res.json({ process: false });
+  }
+  res.json({ process: true });
+});
+
+router.post("/:categoryId/delete_process", async (req, res) => {
+  const categoryId = path.parse(req.params.categoryId).base;
+  const postId = req.body.postId;
+  const [[user_id]] = await pool.query(
+    `SELECT user_id FROM category_post WHERE id=${postId}`
+  );
+  if (user_id.user_id === req.user.id) {
+    await pool.query(
+      `DELETE FROM category_post WHERE id=${postId} AND category_id=${categoryId}`
+    );
+    await pool.query(
+      `UPDATE category SET counting=counting-1 WHERE id=${categoryId}`
+    );
+  } else {
+    return res.json({ process: false });
+  }
+  res.json({ process: true });
+});
+
 router.post("/comment/refresh", async (req, res) => {
   const postId = req.body.postId;
   const [commentList] = await pool.query(
@@ -566,7 +619,6 @@ router.post("/good/process", async (req, res) => {
   const [good] = await pool.query(
     `SELECT user_id FROM category_post_good WHERE post_id='${postId}'`
   );
-  console.log(good);
   if (good.findIndex((obj) => obj.user_id == user_id) === -1) {
     await pool.query(
       `INSERT INTO category_post_good(post_id, user_id) VALUES('${postId}','${user_id}')`
@@ -593,13 +645,13 @@ router.post("/bad/process", async (req, res) => {
       `INSERT INTO category_post_bad(post_id, user_id) VALUES('${postId}','${user_id}')`
     );
     await pool.query(`UPDATE category_post SET bad=bad+1 WHERE id=${postId}`);
-    res.json("추천이 완료되었습니다.");
+    res.json("비추천이 완료되었습니다.");
   } else {
     await pool.query(
       `DELETE FROM category_post_bad WHERE user_id='${user_id}'`
     );
     await pool.query(`UPDATE category_post SET bad=bad-1 WHERE id=${postId}`);
-    res.json("추천이 취소되었습니다.");
+    res.json("비추천이 취소되었습니다.");
   }
 });
 

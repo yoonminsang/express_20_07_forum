@@ -81,9 +81,9 @@ CREATE TABLE notice_post(
   PRIMARY KEY(id)
 );
 
-CREATE TABLE notice_comment(
+CREATE TABLE notice_post_comment(
   id INT NOT NULL AUTO_INCREMENT,
-  notice_id INT NOT NULL,
+  post_id INT NOT NULL,
   user_id CHAR(36) NOT NULL,
   content VARCHAR(100) NOT NULL,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -91,17 +91,17 @@ CREATE TABLE notice_comment(
   PRIMARY KEY(id)
 );
 
-CREATE TABLE notice_good(
+CREATE TABLE notice_post_good(
   id INT NOT NULL AUTO_INCREMENT,
-  notice_id INT NOT NULL,
-  user_id INT NOT NULL,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
   PRIMARY KEY(id)
 );
 
-CREATE TABLE notice_bad(
+CREATE TABLE notice_post_bad(
   id INT NOT NULL AUTO_INCREMENT,
-  notice_id INT NOT NULL,
-  user_id INT NOT NULL,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
   PRIMARY KEY(id)
 );
 

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../lib/pool");
 const path = require("path");
+const { resolveSoa } = require("dns");
 
 router.get("/category", async (req, res) => {
   const [category] = await pool.query(
@@ -150,6 +151,76 @@ router.post("/notice/create_process", async (req, res) => {
   );
   await pool.query(`UPDATE notice_counting SET counting=counting+1`);
   res.json({ process: true });
+});
+
+router.get("/notice/modify/:postId", async (req, res) => {
+  if (req.user.grade !== "manager") {
+    return res.json(false);
+  }
+  const postId = path.parse(req.params.postId).base;
+  const [[notice]] = await pool.query(
+    `SELECT title, content, status FROM notice_post WHERE id=${postId}`
+  );
+  res.json({ notice });
+});
+
+router.post("/notice/modify_process", async (req, res) => {
+  const postId = req.body.postId;
+  const title = req.body.title;
+  const content = req.body.content;
+  const status = req.body.status;
+  await pool.query(
+    `UPDATE notice_post SET title='${title}', content='${content}', status='${status}' WHERE id=${postId}`
+  );
+  res.json({ process: true });
+});
+
+router.get("/hit", async (req, res) => {
+  let [category_post] = await pool.query(
+    "SELECT id, title, comment, good, hit, report, date_format(modified, '%Y-%m-%d %h:%i') as created FROM category_post WHERE hit>0 AND hit_status is NULL ORDER BY hit DESC LIMIT 15"
+  );
+  category_post.map((post) => (post.checked = false));
+  const [[counting]] = await pool.query(
+    "SELECT count(*) as counting FROM category_post WHERE hit>0 AND hit_status is NULL"
+  );
+  res.json({ category_post, counting: counting.counting });
+});
+
+router.post("/hit/select_process", async (req, res) => {
+  const id = req.body.id;
+  const status = req.body.status;
+  await pool.query(
+    `UPDATE category_post SET hit_status='${status}' WHERE id IN (${id})`
+  );
+  if (status === "on") {
+    await pool.query(
+      `INSERT INTO hit_post(category_id, origin_post_id, user_id, title, content) SELECT category_id, id, user_id, title, content FROM category_post WHERE id IN (${id})`
+    );
+  }
+  res.json({ process: true });
+});
+
+// router.post("/hit/change_process", async (req, res) => {
+//   const id = req.body.id;
+//   const status = req.body.status;
+//   await pool.query(
+//     `UPDATE category_post SET hit_status='${status}' WHERE id=${id})`
+//   );
+//   //복사해야될거 id, title, content
+//   if (status === "on") {
+//   }
+//   res.json({ process: true });
+// });
+
+router.get("/report", async (req, res) => {
+  let [category_post] = await pool.query(
+    "SELECT id, title, comment, good, hit, report, date_format(modified, '%Y-%m-%d %h:%i') as created FROM category_post WHERE report>0 ORDER BY report DESC LIMIT 15"
+  );
+  category_post.map((post) => (post.checked = false));
+  const [[counting]] = await pool.query(
+    "SELECT count(*) as counting FROM category_post WHERE report>0"
+  );
+  res.json({ category_post, counting: counting.counting });
 });
 
 module.exports = router;

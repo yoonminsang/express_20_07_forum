@@ -31,12 +31,61 @@ CREATE TABLE category_post(
   count INT DEFAULT 0,
   good INT DEFAULT 0,
   bad INT DEFAULT 0,
+  hit INT DEFAULT 0,
+  report INT DEFAULT 0,
+  hit_status VARCHAR(4) DEFAULT NULL,
   comment INT DEFAULT 0,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY(id)
 );
 insert into category_post(category_id, title, content) values(1,"운동1","<div>내용1</div>");
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//CREATE TABLE hit_counting(
+//  counting INT
+//); 귀차나서 안함
+
+CREATE TABLE hit_post(
+  id INT NOT NULL AUTO_INCREMENT,
+  category_id INT NOT NULL,
+  origin_post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  title VARCHAR(40) NOT NULL,
+  content TEXT NULL,
+  count INT DEFAULT 0,
+  good INT DEFAULT 0,
+  bad INT DEFAULT 0,
+  comment INT DEFAULT 0,
+  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE hit_post_good(
+  id INT NOT NULL AUTO_INCREMENT,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE hit_post_bad(
+  id INT NOT NULL AUTO_INCREMENT,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE hit_post_comment(
+  id INT NOT NULL AUTO_INCREMENT,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  content VARCHAR(400) NOT NULL,
+  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY(id)
+);
+///////////////////////////////////////////////////////////////////////
 
 CREATE TABLE category_post_comment(
   id INT NOT NULL AUTO_INCREMENT,
@@ -47,7 +96,6 @@ CREATE TABLE category_post_comment(
   modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY(id)
 );
-CHAR(36)
 
 CREATE TABLE category_post_good(
   id INT NOT NULL AUTO_INCREMENT,
@@ -57,6 +105,20 @@ CREATE TABLE category_post_good(
 );
 
 CREATE TABLE category_post_bad(
+  id INT NOT NULL AUTO_INCREMENT,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE category_post_hit(
+  id INT NOT NULL AUTO_INCREMENT,
+  post_id INT NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE category_post_report(
   id INT NOT NULL AUTO_INCREMENT,
   post_id INT NOT NULL,
   user_id CHAR(36) NOT NULL,
@@ -75,6 +137,7 @@ CREATE TABLE notice_post(
   status VARCHAR(7) NOT NULL,
   good INT DEFAULT 0,
   bad INT DEFAULT 0,
+  hit INT DEFAULT 0,
   comment INT DEFAULT 0,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

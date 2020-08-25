@@ -166,9 +166,215 @@ router.post("/comment/delete_process", async (req, res) => {
 router.post("/comment/refresh", async (req, res) => {
   const postId = req.body.postId;
   const [commentList] = await pool.query(
-    `SELECT notice_post_comment.id, user_id, users.displayName, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
+    `SELECT notice_post_comment.id, user_id, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
   );
   res.json({ commentList });
 });
+
+router.get("/search/:searchType/Keyword/:Keyword", async (req, res) => {
+  const searchType = path.parse(req.params.searchType).base;
+  const Keyword = path.parse(req.params.Keyword).base;
+  let noticePost, counting, cot;
+  switch (searchType) {
+    case "all":
+      [noticePost] = await pool.query(
+        `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50`
+      );
+      [[cot]] = await pool.query(
+        `SELECT count(*) as counting FROM notice_post WHERE title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%'`
+      );
+      counting = cot.counting;
+      break;
+    case "title":
+      [noticePost] = await pool.query(
+        `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE title LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50`
+      );
+      [[cot]] = await pool.query(
+        `SELECT count(*) as counting FROM notice_post WHERE title LIKE '%${Keyword}%'`
+      );
+      counting = cot.counting;
+      break;
+    case "content":
+      [noticePost] = await pool.query(
+        `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE content LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50`
+      );
+      [[cot]] = await pool.query(
+        `SELECT count(*) as counting FROM notice_post WHERE content LIKE '%${Keyword}%'`
+      );
+      counting = cot.counting;
+      break;
+    case "title+content":
+      [noticePost] = await pool.query(
+        `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%') ORDER BY notice_post.id DESC LIMIT 50`
+      );
+      [[cot]] = await pool.query(
+        `SELECT count(*) as counting FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%')`
+      );
+      counting = cot.counting;
+      break;
+  }
+  const today = new Date();
+  let dd = today.getDate() + "";
+  let mm = today.getMonth() + 1 + "";
+  const yy = (today.getFullYear() + "").substring(2);
+  if (dd < 10) {
+    dd = "0" + dd;
+  }
+  if (mm < 10) {
+    mm = "0" + mm;
+  }
+  const now = `${yy}.${mm}.${dd}`;
+  noticePost.map((post) =>
+    post.created.substring(0, 8) === now
+      ? (post.created = post.created.substring(9))
+      : (post.created = post.created.substring(0, 8))
+  );
+  res.json({ counting, noticePost });
+});
+
+router.get(
+  "/search/:searchType/Keyword/:Keyword/page/:pageId",
+  async (req, res) => {
+    const categoryId = path.parse(req.params.categoryId).base;
+    const searchType = path.parse(req.params.searchType).base;
+    const Keyword = path.parse(req.params.Keyword).base;
+    const pageId = path.parse(req.params.pageId).base;
+    const offset = 50 * (pageId - 1);
+    const [category] = await pool.query(
+      `SELECT name FROM category WHERE id=${categoryId}`
+    );
+    let noticePost, counting, cot;
+    switch (searchType) {
+      case "all":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%' ) ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%')`
+        );
+        counting = cot.counting;
+        break;
+      case "title":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE title LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE title LIKE '%${Keyword}%'`
+        );
+        counting = cot.counting;
+        break;
+      case "content":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE content LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE content LIKE '%${Keyword}%'`
+        );
+        counting = cot.counting;
+        break;
+      case "title+content":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%') ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%')`
+        );
+        counting = cot.counting;
+        break;
+    }
+    const today = new Date();
+    let dd = today.getDate() + "";
+    let mm = today.getMonth() + 1 + "";
+    const yy = (today.getFullYear() + "").substring(2);
+    if (dd < 10) {
+      dd = "0" + dd;
+    }
+    if (mm < 10) {
+      mm = "0" + mm;
+    }
+    const now = `${yy}.${mm}.${dd}`;
+    noticePost.map((post) =>
+      post.created.substring(0, 8) === now
+        ? (post.created = post.created.substring(9))
+        : (post.created = post.created.substring(0, 8))
+    );
+    res.json({ counting, noticePost });
+  }
+);
+
+router.get(
+  "/search/:searchType/Keyword/:Keyword/page/:pageId/:postId",
+  async (req, res) => {
+    const searchType = path.parse(req.params.searchType).base;
+    const Keyword = path.parse(req.params.Keyword).base;
+    const pageId = path.parse(req.params.pageId).base;
+    const offset = 50 * (pageId - 1);
+    const postId = path.parse(req.params.postId).base;
+    await pool.query(`UPDATE notice_post SET count=count+1 WHERE id=${postId}`);
+    let noticePost, counting, cot;
+    switch (searchType) {
+      case "all":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%' ) ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%' )`
+        );
+        counting = cot.counting;
+        break;
+      case "title":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE title LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE title LIKE '%${Keyword}%'`
+        );
+        counting = cot.counting;
+        break;
+      case "content":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE content LIKE '%${Keyword}%' ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE content LIKE '%${Keyword}%'`
+        );
+        counting = cot.counting;
+        break;
+      case "title+content":
+        [noticePost] = await pool.query(
+          `SELECT notice_post.id, title, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%') ORDER BY notice_post.id DESC LIMIT 50 OFFSET ${offset}`
+        );
+        [[cot]] = await pool.query(
+          `SELECT count(*) as counting FROM notice_post WHERE (title LIKE '%${Keyword}%' OR content LIKE '%${Keyword}%')`
+        );
+        counting = cot.counting;
+        break;
+    }
+    const today = new Date();
+    let dd = today.getDate() + "";
+    let mm = today.getMonth() + 1 + "";
+    const yy = (today.getFullYear() + "").substring(2);
+    if (dd < 10) {
+      dd = "0" + dd;
+    }
+    if (mm < 10) {
+      mm = "0" + mm;
+    }
+    const now = `${yy}.${mm}.${dd}`;
+    noticePost.map((post) =>
+      post.created.substring(0, 8) === now
+        ? (post.created = post.created.substring(9))
+        : (post.created = post.created.substring(0, 8))
+    );
+    const [[post]] = await pool.query(
+      `SELECT title, content, good, bad, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post WHERE notice_post.id=${postId}`
+    );
+    post.displayName = "매니저";
+    const [commentList] = await pool.query(
+      `SELECT notice_post_comment.id, user_id, users.displayName, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
+    );
+    res.json({ counting, noticePost, post, commentList });
+  }
+);
 
 module.exports = router;

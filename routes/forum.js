@@ -16,6 +16,129 @@ router.get("/", async (req, res) => {
   res.json({ subject, subject_category });
 });
 
+router.post("/comment/delete_process", async (req, res) => {
+  const id = req.body.id;
+  const post_id = req.body.post_id;
+  await pool.query(`DELETE FROM category_post_comment WHERE id=${id}`);
+  await pool.query(
+    `UPDATE category_post SET comment=comment-1 WHERE id=${post_id}`
+  );
+  res.json({ process: true });
+});
+
+router.post("/good/process", async (req, res) => {
+  const user_id = req.body.user_id;
+  const postId = req.body.postId;
+  const [good] = await pool.query(
+    `SELECT user_id FROM category_post_good WHERE post_id='${postId}'`
+  );
+  if (good.findIndex((obj) => obj.user_id == user_id) === -1) {
+    await pool.query(
+      `INSERT INTO category_post_good(post_id, user_id) VALUES('${postId}','${user_id}')`
+    );
+    await pool.query(`UPDATE category_post SET good=good+1 WHERE id=${postId}`);
+    res.json("추천이 완료되었습니다.");
+  } else {
+    await pool.query(
+      `DELETE FROM category_post_good WHERE user_id='${user_id}'`
+    );
+    await pool.query(`UPDATE category_post SET good=good-1 WHERE id=${postId}`);
+    res.json("추천이 취소되었습니다.");
+  }
+});
+
+router.post("/bad/process", async (req, res) => {
+  const user_id = req.body.user_id;
+  const postId = req.body.postId;
+  const [bad] = await pool.query(
+    `SELECT user_id FROM category_post_bad WHERE post_id='${postId}'`
+  );
+  if (bad.findIndex((obj) => obj.user_id == user_id) === -1) {
+    await pool.query(
+      `INSERT INTO category_post_bad(post_id, user_id) VALUES('${postId}','${user_id}')`
+    );
+    await pool.query(`UPDATE category_post SET bad=bad+1 WHERE id=${postId}`);
+    res.json("비추천이 완료되었습니다.");
+  } else {
+    await pool.query(
+      `DELETE FROM category_post_bad WHERE user_id='${user_id}'`
+    );
+    await pool.query(`UPDATE category_post SET bad=bad-1 WHERE id=${postId}`);
+    res.json("비추천이 취소되었습니다.");
+  }
+});
+
+router.post("/hit/process", async (req, res) => {
+  const user_id = req.body.user_id;
+  const postId = req.body.postId;
+  const [hit] = await pool.query(
+    `SELECT user_id FROM category_post_hit WHERE post_id='${postId}'`
+  );
+  const [find] = await pool.query(
+    `SELECT id FROM hit_post WHERE origin_post_id='${postId}'`
+  );
+  if (find.length === 1) {
+    return res.json("이미 힛갤에 올라간 글입니다.");
+  }
+  if (hit.findIndex((obj) => obj.user_id == user_id) === -1) {
+    await pool.query(
+      `INSERT INTO category_post_hit(post_id, user_id) VALUES('${postId}','${user_id}')`
+    );
+    await pool.query(`UPDATE category_post SET hit=hit+1 WHERE id=${postId}`);
+    res.json("힛갤 추천이 완료되었습니다.");
+  } else {
+    await pool.query(
+      `DELETE FROM category_post_hit WHERE user_id='${user_id}'`
+    );
+    await pool.query(`UPDATE category_post SET hit=hit-1 WHERE id=${postId}`);
+    res.json("힛갤 추천이 취소되었습니다.");
+  }
+});
+
+router.post("/report/process", async (req, res) => {
+  const user_id = req.body.user_id;
+  const postId = req.body.postId;
+  const [report] = await pool.query(
+    `SELECT user_id FROM category_post_report WHERE post_id='${postId}'`
+  );
+  if (report.findIndex((obj) => obj.user_id == user_id) === -1) {
+    await pool.query(
+      `INSERT INTO category_post_report(post_id, user_id) VALUES('${postId}','${user_id}')`
+    );
+    await pool.query(
+      `UPDATE category_post SET report=report+1 WHERE id=${postId}`
+    );
+    res.json("신고가 완료되었습니다.");
+  } else {
+    await pool.query(
+      `DELETE FROM category_post_report WHERE user_id='${user_id}'`
+    );
+    await pool.query(
+      `UPDATE category_post SET report=report-1 WHERE id=${postId}`
+    );
+    res.json("신고가 취소되었습니다.");
+  }
+});
+
+router.post("/goodbad/refresh", async (req, res) => {
+  const postId = req.body.postId;
+  const [[post]] = await pool.query(
+    `SELECT good, bad FROM category_post WHERE category_post.id=${postId}`
+  );
+  res.json({ post });
+});
+
+router.get("/info/:email", async (req, res) => {
+  const email = path.parse(req.params.email).base;
+  const [[categoryPost]] = await pool.query(
+    `SELECT count(*) as count FROM users JOIN category_post ON users.id=user_id WHERE email='${email}'`
+  );
+  const [[categoryComment]] = await pool.query(
+    `SELECT count(*) as count FROM users JOIN category_post_comment ON users.id=user_id WHERE email='${email}'`
+  );
+  res.json({ post: categoryPost.count, comment: categoryComment.count });
+});
+
 router.get("/:categoryId", async (req, res) => {
   const categoryId = path.parse(req.params.categoryId).base;
   const [category] = await pool.query(
@@ -503,7 +626,7 @@ router.get(
   }
 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////crud
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 router.get("/:categoryId/write", async (req, res) => {
   const categoryId = path.parse(req.params.categoryId).base;
@@ -532,7 +655,7 @@ router.get("/:categoryId/modify/:postId", async (req, res) => {
   const categoryId = path.parse(req.params.categoryId).base;
   const postId = path.parse(req.params.postId).base;
   const [category] = await pool.query(
-    `SELECT name, counting FROM category WHERE id=${categoryId}`
+    `SELECT name FROM category WHERE id=${categoryId}`
   );
   const title = category[0].name;
   const [[post]] = await pool.query(
@@ -545,9 +668,9 @@ router.get("/:categoryId/modify/:postId", async (req, res) => {
   }
 });
 
-router.post("/:categoryId/modify/:postId/process", async (req, res) => {
+router.post("/:categoryId/modify_process", async (req, res) => {
   const categoryId = path.parse(req.params.categoryId).base;
-  const postId = path.parse(req.params.postId).base;
+  const postId = req.body.postId;
   const title = req.body.title;
   const content = req.body.content;
   const [[user_id]] = await pool.query(
@@ -601,77 +724,6 @@ router.post("/comment/create_process", async (req, res) => {
     `UPDATE category_post SET comment=comment+1 WHERE id=${post_id}`
   );
   res.json({ process: true });
-});
-
-router.post("/comment/delete_process", async (req, res) => {
-  const id = req.body.id;
-  const post_id = req.body.post_id;
-  await pool.query(`DELETE FROM category_post_comment WHERE id=${id}`);
-  await pool.query(
-    `UPDATE category_post SET comment=comment-1 WHERE id=${post_id}`
-  );
-  res.json({ process: true });
-});
-
-router.post("/good/process", async (req, res) => {
-  const user_id = req.body.user_id;
-  const postId = req.body.postId;
-  const [good] = await pool.query(
-    `SELECT user_id FROM category_post_good WHERE post_id='${postId}'`
-  );
-  if (good.findIndex((obj) => obj.user_id == user_id) === -1) {
-    await pool.query(
-      `INSERT INTO category_post_good(post_id, user_id) VALUES('${postId}','${user_id}')`
-    );
-    await pool.query(`UPDATE category_post SET good=good+1 WHERE id=${postId}`);
-    res.json("추천이 완료되었습니다.");
-  } else {
-    await pool.query(
-      `DELETE FROM category_post_good WHERE user_id='${user_id}'`
-    );
-    await pool.query(`UPDATE category_post SET good=good-1 WHERE id=${postId}`);
-    res.json("추천이 취소되었습니다.");
-  }
-});
-
-router.post("/bad/process", async (req, res) => {
-  const user_id = req.body.user_id;
-  const postId = req.body.postId;
-  const [bad] = await pool.query(
-    `SELECT user_id FROM category_post_bad WHERE post_id='${postId}'`
-  );
-  if (bad.findIndex((obj) => obj.user_id == user_id) === -1) {
-    await pool.query(
-      `INSERT INTO category_post_bad(post_id, user_id) VALUES('${postId}','${user_id}')`
-    );
-    await pool.query(`UPDATE category_post SET bad=bad+1 WHERE id=${postId}`);
-    res.json("비추천이 완료되었습니다.");
-  } else {
-    await pool.query(
-      `DELETE FROM category_post_bad WHERE user_id='${user_id}'`
-    );
-    await pool.query(`UPDATE category_post SET bad=bad-1 WHERE id=${postId}`);
-    res.json("비추천이 취소되었습니다.");
-  }
-});
-
-router.post("/goodbad/refresh", async (req, res) => {
-  const postId = req.body.postId;
-  const [[post]] = await pool.query(
-    `SELECT good, bad FROM category_post WHERE category_post.id=${postId}`
-  );
-  res.json({ post });
-});
-
-router.get("/info/:email", async (req, res) => {
-  const email = path.parse(req.params.email).base;
-  const [[categoryPost]] = await pool.query(
-    `SELECT count(*) as count FROM users JOIN category_post ON users.id=user_id WHERE email='${email}'`
-  );
-  const [[categoryComment]] = await pool.query(
-    `SELECT count(*) as count FROM users JOIN category_post_comment ON users.id=user_id WHERE email='${email}'`
-  );
-  res.json({ post: categoryPost.count, comment: categoryComment.count });
 });
 
 module.exports = router;

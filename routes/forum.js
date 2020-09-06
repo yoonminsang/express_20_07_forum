@@ -8,7 +8,6 @@ router.get("/", async (req, res) => {
   const [category] = await pool.query(
     "SELECT id, name, subject, counting FROM category"
   );
-
   let subject_category = [];
   for (let i = 1; i <= subject.length; i++) {
     subject_category.push(category.filter((cate) => cate.subject === i));
@@ -27,7 +26,12 @@ router.post("/comment/delete_process", async (req, res) => {
 });
 
 router.post("/good/process", async (req, res) => {
-  const user_id = req.body.user_id;
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
+  const user_id = req.user.id;
+
   const postId = req.body.postId;
   const [good] = await pool.query(
     `SELECT user_id FROM category_post_good WHERE post_id='${postId}'`
@@ -48,7 +52,11 @@ router.post("/good/process", async (req, res) => {
 });
 
 router.post("/bad/process", async (req, res) => {
-  const user_id = req.body.user_id;
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
+  const user_id = req.user.id;
   const postId = req.body.postId;
   const [bad] = await pool.query(
     `SELECT user_id FROM category_post_bad WHERE post_id='${postId}'`
@@ -69,7 +77,11 @@ router.post("/bad/process", async (req, res) => {
 });
 
 router.post("/hit/process", async (req, res) => {
-  const user_id = req.body.user_id;
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
+  const user_id = req.user.id;
   const postId = req.body.postId;
   const [hit] = await pool.query(
     `SELECT user_id FROM category_post_hit WHERE post_id='${postId}'`
@@ -96,7 +108,11 @@ router.post("/hit/process", async (req, res) => {
 });
 
 router.post("/report/process", async (req, res) => {
-  const user_id = req.body.user_id;
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
+  const user_id = req.user.id;
   const postId = req.body.postId;
   const [report] = await pool.query(
     `SELECT user_id FROM category_post_report WHERE post_id='${postId}'`
@@ -260,15 +276,23 @@ router.get("/:categoryId/mode/:modeType", async (req, res) => {
     mm = "0" + mm;
   }
   const nowSql = `${yy}-${mm}-${dd}`;
+  //일단 0이라고만 해놨어
   if (modeType === "recommend") {
     [categoryPost] = await pool.query(
-      `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0 ORDER BY good DESC LIMIT 50`
+      `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0 ORDER BY category_post.id DESC LIMIT 50`
     );
     const [[cot]] = await pool.query(
       `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0`
     );
     counting = cot.counting;
-  } else if (modeType === "notice") {
+  } else if (modeType === "best") {
+    [categoryPost] = await pool.query(
+      `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND good>0 ORDER BY category_post.id DESC LIMIT 50`
+    );
+    const [[cot]] = await pool.query(
+      `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND good>0`
+    );
+    counting = cot.counting;
   }
   yy = yy.substring(2);
   const now = `${yy}.${mm}.${dd}`;
@@ -309,7 +333,14 @@ router.get("/:categoryId/mode/:modeType/page/:pageId", async (req, res) => {
       `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND created LIKE '${nowSql}%' AND good>0`
     );
     counting = cot.counting;
-  } else if (modeType === "notice") {
+  } else if (modeType === "best") {
+    [categoryPost] = await pool.query(
+      `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND good>0 ORDER BY category_post.id DESC LIMIT 50 OFFSET ${offset}`
+    );
+    const [[cot]] = await pool.query(
+      `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND good>0`
+    );
+    counting = cot.counting;
   }
   yy = yy.substring(2);
   const now = `${yy}.${mm}.${dd}`;
@@ -363,7 +394,14 @@ router.get(
       [commentList] = await pool.query(
         `SELECT category_post_comment.id, user_id, users.displayName, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
       );
-    } else if (modeType === "notice") {
+    } else if (modeType === "best") {
+      [categoryPost] = await pool.query(
+        `SELECT category_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM category_post JOIN users ON user_id=users.id WHERE category_id=${categoryId} AND good>0 ORDER BY category_post.id DESC LIMIT 50 OFFSET ${offset}`
+      );
+      const [[cot]] = await pool.query(
+        `SELECT count(*) as counting FROM category_post WHERE category_id=${categoryId} AND good>0`
+      );
+      counting = cot.counting;
     }
     yy = yy.substring(2);
     const now = `${yy}.${mm}.${dd}`;
@@ -699,6 +737,11 @@ router.post("/:categoryId/delete_process", async (req, res) => {
     await pool.query(
       `UPDATE category SET counting=counting-1 WHERE id=${categoryId}`
     );
+    await pool.query(
+      `DELETE FROM category_post_comment WHERE post_id=${postId}`
+    );
+    await pool.query(`DELETE FROM category_post_good WHERE post_id=${postId}`);
+    await pool.query(`DELETE FROM category_post_bad WHERE post_id=${postId}`);
   } else {
     return res.json({ process: false });
   }

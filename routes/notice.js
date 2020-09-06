@@ -95,6 +95,8 @@ router.get("/page/:pageId/:postId", async (req, res) => {
 });
 
 router.post("/good/process", async (req, res) => {
+  // if(req.user===)
+  console.log(req.user);
   const user_id = req.user.id;
   const postId = req.body.postId;
   const [good] = await pool.query(
@@ -166,7 +168,7 @@ router.post("/comment/delete_process", async (req, res) => {
 router.post("/comment/refresh", async (req, res) => {
   const postId = req.body.postId;
   const [commentList] = await pool.query(
-    `SELECT notice_post_comment.id, user_id, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
+    `SELECT notice_post_comment.id, user_id, users.displayName, email, content, date_format(created, '%y.%m.%d %H:%i') as created FROM notice_post_comment JOIN users ON user_id=users.id WHERE post_id=${postId}`
   );
   res.json({ commentList });
 });

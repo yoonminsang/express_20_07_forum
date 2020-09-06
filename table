@@ -33,7 +33,8 @@ CREATE TABLE category_post(
   bad INT DEFAULT 0,
   hit INT DEFAULT 0,
   report INT DEFAULT 0,
-  hit_status VARCHAR(4) DEFAULT NULL,
+  hit_status VARCHAR(4) DEFAULT "NULL",
+  report_status VARCHAR(4) DEFAULT "NULL",
   comment INT DEFAULT 0,
   created DATETIME DEFAULT CURRENT_TIMESTAMP,
   modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -128,6 +129,7 @@ CREATE TABLE category_post_report(
 CREATE TABLE notice_counting(
   counting INT
 );
+insert into notice_counting(counting) values(0);
 
 CREATE TABLE notice_post(
   id INT NOT NULL AUTO_INCREMENT,

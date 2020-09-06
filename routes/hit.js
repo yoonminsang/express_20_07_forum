@@ -5,7 +5,7 @@ const path = require("path");
 
 router.get("/", async (req, res) => {
   let [hitPost] = await pool.query(
-    `SELECT hit_post.id, title, users.displayName, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50`
+    `SELECT hit_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50`
   );
   const [[cot]] = await pool.query(`SELECT count(*) as counting FROM hit_post`);
   const today = new Date();
@@ -31,7 +31,7 @@ router.get("/page/:pageId", async (req, res) => {
   const pageId = path.parse(req.params.pageId).base;
   const offset = 50 * (pageId - 1);
   let [hitPost] = await pool.query(
-    `SELECT hit_post.id, title, users.displayName, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50 OFFSET ${offset}`
+    `SELECT hit_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50 OFFSET ${offset}`
   );
   const [[cot]] = await pool.query(`SELECT count(*) as counting FROM hit_post`);
   const today = new Date();
@@ -59,7 +59,7 @@ router.get("/page/:pageId/:postId", async (req, res) => {
   const postId = path.parse(req.params.postId).base;
   await pool.query(`UPDATE hit_post SET count=count+1 WHERE id=${postId}`);
   let [hitPost] = await pool.query(
-    `SELECT hit_post.id, title, users.displayName, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50 OFFSET ${offset}`
+    `SELECT hit_post.id, title, users.displayName, email, good, comment, count, date_format(created, '%y.%m.%d %H:%i') as created FROM hit_post JOIN users ON user_id=users.id ORDER BY hit_post.id DESC LIMIT 50 OFFSET ${offset}`
   );
   const [[cot]] = await pool.query(`SELECT count(*) as counting FROM hit_post`);
   const today = new Date();
@@ -89,6 +89,10 @@ router.get("/page/:pageId/:postId", async (req, res) => {
 });
 
 router.post("/good/process", async (req, res) => {
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
   const user_id = req.user.id;
   const postId = req.body.postId;
   const [good] = await pool.query(
@@ -108,6 +112,10 @@ router.post("/good/process", async (req, res) => {
 });
 
 router.post("/bad/process", async (req, res) => {
+  // const user_id = req.body.user_id;
+  if (req.user === undefined) {
+    return res.json("로그인이 필요합니다.");
+  }
   const user_id = req.user.id;
   const postId = req.body.postId;
   const [bad] = await pool.query(
